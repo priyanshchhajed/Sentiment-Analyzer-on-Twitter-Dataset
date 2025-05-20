@@ -1,0 +1,106 @@
+{% extends 'sentiment_app/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Upload Form -->
+    <form method="POST" enctype="multipart/form-data" class="mb-4">
+        {% csrf_token %}
+        <div class="input-group">
+            <input type="file" name="dataset" class="form-control" required>
+            <button type="submit" class="btn btn-primary">Upload and Analyze</button>
+        </div>
+    </form>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if page_obj or pie_chart %}
+        <!-- Toggle and Download -->
+        <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mb-3">
+            <button class="btn btn-outline-primary" onclick="showTable()">Table View</button>
+            <button class="btn btn-outline-success" onclick="showCharts()">Chart View</button>
+            <a href="{% url 'download_csv' %}" class="btn btn-outline-dark">Download CSV</a>
+        </div>
+    {% endif %}
+
+    <!-- Table View -->
+    <div id="table-section" style="display: {{ show_table|default:True|yesno:'block,none' }};">
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            {% for key in page_obj.object_list.0.keys %}
+                                <th>{{ key|capfirst }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in page_obj %}
+                            <tr>
+                                {% for value in row.values %}
+                                    <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Clean Pagination with dropdown -->
+            <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn-sm btn-outline-secondary" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                {% else %}
+                    <button class="btn btn-sm btn-outline-secondary" disabled>Previous</button>
+                {% endif %}
+
+                <form method="get">
+                    <select name="page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                        {% for num in page_obj.paginator.page_range %}
+                            <option value="{{ num }}" {% if num == page_obj.number %}selected{% endif %}>
+                                Page {{ num }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+
+                {% if page_obj.has_next %}
+                    <a class="btn btn-sm btn-outline-secondary" href="?page={{ page_obj.next_page_number }}">Next</a>
+                {% else %}
+                    <button class="btn btn-sm btn-outline-secondary" disabled>Next</button>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Chart View -->
+    <div id="chart-section" style="display: none;">
+        {% if pie_chart and bar_chart %}
+            <div class="row justify-content-center">
+                <div class="col-md-6 mb-4">
+                    <h5 class="text-center">Sentiment Distribution</h5>
+                    <img src="data:image/png;base64,{{ pie_chart }}" class="img-fluid border rounded shadow">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <h5 class="text-center">Category Counts</h5>
+                    <img src="data:image/png;base64,{{ bar_chart }}" class="img-fluid border rounded shadow">
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function showCharts() {
+        document.getElementById("table-section").style.display = "none";
+        document.getElementById("chart-section").style.display = "block";
+    }
+
+    function showTable() {
+        document.getElementById("chart-section").style.display = "none";
+        document.getElementById("table-section").style.display = "block";
+    }
+</script>
+{% endblock %}

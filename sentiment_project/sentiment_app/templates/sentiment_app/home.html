@@ -1,0 +1,97 @@
+{% extends 'sentiment_app/base.html' %}
+
+{% block content %}
+<style>
+    body { font-family: Arial, sans-serif; background-color: #f9f9f9; }
+    .container { width: 60%; margin: 0 auto; padding-top: 20px; }
+    .heading { text-align: center; margin-bottom: 20px; }
+    .input-container textarea { width: 100%; padding: 10px; font-size: 16px; border-radius: 5px; }
+    .button-container { text-align: center; margin-top: 20px; }
+    .button-container button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .button-container button:hover {
+        background-color: #0056b3;
+    }
+    .result {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #fff;
+    }
+    .positive { background-color: #d4edda; }
+    .negative { background-color: #f8d7da; }
+    .neutral { background-color: #fff3cd; }
+</style>
+
+<div class="container">
+    <div class="heading">
+        <h1>Sentence Sentiment Analysis</h1>
+    </div>
+
+    <div class="input-container">
+        <textarea id="inputText" rows="5" placeholder="Enter a sentence for sentiment analysis..."></textarea>
+    </div>
+
+    <div class="button-container">
+        <button onclick="analyzeText()">Analyze Sentiment</button>
+    </div>
+
+    <div class="result" id="resultContainer" style="display: none;">
+        <h2 id="resultSentiment"></h2>
+        <p id="resultPolarity"></p>
+    </div>
+</div>
+
+<script>
+    function getCSRFToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    }
+
+    function analyzeText() {
+        var text = document.getElementById("inputText").value;
+
+        if (!text) {
+            alert("Please enter a sentence.");
+            return;
+        }
+
+        fetch("{% url 'analyze_text' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken(),
+            },
+            body: JSON.stringify({ text: text }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                var sentiment = data.sentiment;
+                var polarity = data.polarity;
+                var resultContainer = document.getElementById("resultContainer");
+                var resultSentiment = document.getElementById("resultSentiment");
+                var resultPolarity = document.getElementById("resultPolarity");
+
+                resultSentiment.textContent = "Sentiment: " + sentiment;
+                resultPolarity.textContent = "Polarity Score: " + polarity.toFixed(4);
+
+                resultContainer.style.display = "block";
+                resultContainer.className = "result " + sentiment.toLowerCase();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+</script>
+{% endblock %}
